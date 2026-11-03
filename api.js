@@ -49,7 +49,7 @@ function createLocalApi(fetchImpl) {
       }
       if (!res.ok) throw new ApiError(`加载失败（HTTP ${res.status}）`, { status: res.status });
       const data = await res.json().catch(() => ({}));
-      return (data.items || []).map(normalizeItem);
+      return (data.items || []).map(normalizeRow);
     },
     async submit(input) {
       const checked = validateFeedback(input);
@@ -72,42 +72,66 @@ function createLocalApi(fetchImpl) {
           status: res.status,
         });
       }
-      return normalizeItem(data.item);
+      return normalizeRow(data.item);
     },
   };
 }
 
+/**
+ * CloudBase PG 模式：Publishable Key → anon 角色 → PostgREST（app.rdb()）
+ * 权限由数据库的表级 GRANT + RLS 策略决定，SQL 见仓库根目录 cloudbase.sql。
+ */
 function createCloudbaseApi({ config, sdk }) {
   if (!sdk || typeof sdk.init !== 'function') throw new ApiError('CloudBase SDK 未加载');
+  const table = config.collection || 'feedback';
 
   let db = null;
-  function database() {
+  function rdb() {
     if (!db) {
       const app = sdk.init({
         env: config.env,
         accessKey: config.accessKey,
         region: config.region || 'ap-shanghai',
       });
-      db = app.database();
+      if (typeof app.rdb !== 'function') {
+        throw new ApiError('当前 SDK 不支持 PostgreSQL 访问，请确认 CloudBase 环境是 PG 模式');
+      }
+      db = app.rdb();
     }
     return db;
   }
-  const collection = () => database().collection(config.collection || 'feedback');
 
   return {
     mode: 'cloudbase',
     async list() {
-      const res = await callSdk(() => collection().orderBy('createdAt', 'desc').limit(200).get());
-      if (res?.code) throw mapCloudError(res);
-      return (res?.data || []).map(normalizeItem);
+      const res = await callSdk(() =>
+        rdb()
+          .from(table)
+          .select('id, name, course, content, created_at')
+          .order('created_at', { ascending: false })
+          .limit(200),
+      );
+      if (res?.error) throw mapCloudError(res.error);
+      return (res?.data || []).map(normalizeRow);
     },
     async submit(input) {
       const checked = validateFeedback(input);
       if (!checked.ok) throw new ApiError(checked.message, { field: checked.field });
 
-      const res = await callSdk(() => collection().add({ ...checked.value, createdAt: new Date() }));
-      if (res?.code) throw mapCloudError(res);
-      return { id: String(res?.id ?? ''), ...checked.value, createdAt: new Date() };
+      const res = await callSdk(() =>
+        rdb()
+          .from(table)
+          .insert({
+            name: checked.value.name,
+            course: checked.value.course,
+            content: checked.value.content,
+          })
+          .select(),
+      );
+      if (res?.error) throw mapCloudError(res.error);
+
+      const row = Array.isArray(res?.data) ? res.data[0] : res?.data;
+      return normalizeRow(row || { ...checked.value, created_at: new Date().toISOString() });
     },
   };
 }
@@ -122,32 +146,41 @@ async function callSdk(fn) {
 
 function asApiError(err) {
   if (err instanceof ApiError) return err;
-  if (err && typeof err === 'object' && err.code) return mapCloudError(err);
-  return new ApiError(err?.message || '云端请求失败，请稍后重试', { cause: err });
+  if (err && typeof err === 'object' && (err.code || err.message)) return mapCloudError(err);
+  return new ApiError('云端请求失败，请稍后重试', { cause: err });
 }
 
-const CLOUD_ERROR_TEXT = {
-  DATABASE_PERMISSION_DENIED: '数据库拒绝访问：请检查 feedback 集合的安全规则是否允许读写',
-  PERMISSION_DENIED: '数据库拒绝访问：请检查 feedback 集合的安全规则',
-  INVALID_API_KEY: 'Publishable Key 无效：请检查 config.js 里的 accessKey',
-  INVALID_ACCESS_KEY: 'Publishable Key 无效：请检查 config.js 里的 accessKey',
-  ENV_NOT_FOUND: '环境不存在：请检查 config.js 里的 env',
-  INVALID_ENV: '环境 ID 格式不正确：请检查 config.js 里的 env',
-  NETWORK_ERROR: '网络异常，无法连接云端数据库',
-};
+function mapCloudError(err = {}) {
+  const code = String(err.code || '');
+  const raw = String(err.message || '');
+  const lower = raw.toLowerCase();
+  let friendly = raw || '云端请求失败，请稍后重试';
 
-function mapCloudError(res = {}) {
-  const code = res.code;
-  const friendly = CLOUD_ERROR_TEXT[code] || `云端返回错误：${res.message || code || '未知错误'}`;
-  return new ApiError(friendly, { code });
+  if (code === '42501' || lower.includes('permission denied')) {
+    friendly = '数据库拒绝访问：请检查 feedback 表的 RLS 策略，以及 anon 角色的 GRANT 权限';
+  } else if (
+    code === '42P01' ||
+    lower.includes('does not exist') ||
+    lower.includes('could not find the table')
+  ) {
+    friendly = '数据表还没准备好：请先在 SQL 编辑器执行 cloudbase.sql，稍等 1 分钟再刷新';
+  } else if (code === '23514' || lower.includes('violates check constraint')) {
+    friendly = '内容不符合数据库约束：姓名 1–20 字、课程 ≤20 字、内容 5–1000 字';
+  } else if (lower.includes('failed to fetch') || lower.includes('network')) {
+    friendly = '网络异常，无法连接云端数据库';
+  } else if (lower.includes('jwt') || lower.includes('api key') || code === '401') {
+    friendly = '鉴权失败：请检查 config.js 里的环境 ID 与 Publishable Key';
+  }
+
+  return new ApiError(friendly, { code: code || undefined });
 }
 
-function normalizeItem(doc = {}) {
+function normalizeRow(row = {}) {
   return {
-    id: String(doc._id ?? doc.id ?? ''),
-    name: String(doc.name ?? ''),
-    course: String(doc.course ?? ''),
-    content: String(doc.content ?? ''),
-    createdAt: doc.createdAt ?? null,
+    id: String(row.id ?? row._id ?? ''),
+    name: String(row.name ?? ''),
+    course: String(row.course ?? ''),
+    content: String(row.content ?? ''),
+    createdAt: row.created_at ?? row.createdAt ?? null,
   };
 }
