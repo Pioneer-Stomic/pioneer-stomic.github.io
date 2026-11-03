@@ -4,111 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>学习问题反馈墙</title>
-  <meta name="description" content="收集同学们现阶段的学习难点与课程困惑，提交后汇总到公示栏。" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234f46e5'/%3E%3Cpath d='M18 22h28M18 32h28M18 42h18' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="./styles.css" />
+  <meta name="robots" content="noindex" />
+  <link rel="canonical" href="https://pioneer-stomic.github.io/openserver/" />
+  <meta http-equiv="refresh" content="0; url=/openserver/" />
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f5fb; color: #1e2233;
+           font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    a { color: #4f46e5; }
+  </style>
+  <script>location.replace('/openserver/' + location.search + location.hash);</script>
 </head>
 <body>
-  <header class="hero">
-    <div class="wrap">
-      <span class="hero-badge">学习问题反馈</span>
-      <h1>学习问题反馈墙</h1>
-      <p class="hero-sub">把现阶段的学习难点、课程困惑写下来，提交后会汇总到下方公示栏，供老师和同学一起看。</p>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section class="card form-card" aria-labelledby="form-title">
-      <h2 id="form-title">提交你的困惑</h2>
-
-      <div id="setup-notice" class="notice notice--warn" hidden>
-        <strong>云端数据库尚未配置。</strong>
-        <p>页面可以正常浏览，但暂时无法提交和查看汇总。站长把 CloudBase 的环境 ID 与 Publishable Key 填进 <code>config.js</code> 后即可使用。</p>
-      </div>
-
-      <form id="feedback-form" novalidate>
-        <label class="field">
-          <span class="field-label">学习难点 / 课程困惑 <em>必填</em></span>
-          <textarea id="content" name="content" rows="6" maxlength="1000" required
-            placeholder="例如：导数求单调区间时总是不知从哪一步开始，希望老师再讲一遍例题。"></textarea>
-          <span class="counter"><span id="content-count">0</span>/1000</span>
-        </label>
-
-        <div class="row">
-          <label class="field">
-            <span class="field-label">姓名 <em>必填</em></span>
-            <input id="name" name="name" type="text" maxlength="20" autocomplete="name" required placeholder="你的名字" />
-          </label>
-          <label class="field">
-            <span class="field-label">课程 <em>选填</em></span>
-            <input id="course" name="course" type="text" maxlength="20" list="course-options" placeholder="如：高等数学" />
-            <datalist id="course-options">
-              <option value="语文"></option>
-              <option value="数学"></option>
-              <option value="英语"></option>
-              <option value="物理"></option>
-              <option value="化学"></option>
-              <option value="生物"></option>
-              <option value="政治"></option>
-              <option value="历史"></option>
-              <option value="地理"></option>
-              <option value="信息技术"></option>
-            </datalist>
-          </label>
-        </div>
-
-        <!-- 蜜罐：正常用户看不到，机器人会填 -->
-        <input class="hp" id="website" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
-
-        <div class="form-foot">
-          <p class="hint">提交后立即出现在下方公示栏；内容公开可见，请勿填写隐私信息。</p>
-          <button id="submit-btn" class="btn" type="submit">提交反馈</button>
-        </div>
-        <p id="form-message" class="message" role="alert" aria-live="polite"></p>
-      </form>
-    </section>
-
-    <section class="card board" aria-labelledby="board-title">
-      <div class="board-head">
-        <div>
-          <h2 id="board-title">公示栏 · 汇总表</h2>
-          <p class="board-sub">全部反馈，按提交时间倒序</p>
-        </div>
-        <div class="board-actions">
-          <span id="status-pill" class="pill" aria-live="polite">加载中</span>
-          <button id="refresh-btn" class="btn btn--ghost" type="button">刷新</button>
-        </div>
-      </div>
-
-      <div class="table-wrap" id="table-wrap">
-        <table class="board-table">
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">姓名</th>
-              <th scope="col">课程</th>
-              <th scope="col">学习难点与课程困惑</th>
-              <th scope="col">提交时间</th>
-            </tr>
-          </thead>
-          <tbody id="board-body"></tbody>
-        </table>
-      </div>
-
-      <p id="board-empty" class="empty" hidden>还没有人提交，来当第一个吧。</p>
-
-      <div id="board-error" class="notice notice--error" hidden>
-        <p id="board-error-text"></p>
-        <button id="retry-btn" class="btn btn--ghost" type="button">重试</button>
-      </div>
-    </section>
-  </main>
-
-  <footer class="wrap foot">
-    <p>数据存储：<span id="mode-text">检测中…</span>　·　本页不收集除姓名与课程之外的个人信息。</p>
-  </footer>
-
-  <script src="./config.js"></script>
-  <script type="module" src="./app.js"></script>
+  <p>正在跳转到 <a href="/openserver/">学习问题反馈墙</a>…</p>
 </body>
 </html>
