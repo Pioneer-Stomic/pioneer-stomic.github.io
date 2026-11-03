@@ -166,8 +166,12 @@ function mapCloudError(err = {}) {
     friendly = '数据表还没准备好：请先在 SQL 编辑器执行 cloudbase.sql，稍等 1 分钟再刷新';
   } else if (code === '23514' || lower.includes('violates check constraint')) {
     friendly = '内容不符合数据库约束：姓名 1–20 字、课程 ≤20 字、内容 5–1000 字';
-  } else if (lower.includes('failed to fetch') || lower.includes('network')) {
-    friendly = '网络异常，无法连接云端数据库';
+  } else if (
+    lower.includes('failed to fetch') ||
+    lower.includes('network') ||
+    code === 'NETWORK_ERROR'
+  ) {
+    friendly = '连不上云端：请确认 CloudBase「环境配置 → 安全来源」已添加 pioneer-stomic.github.io，并等待 1–2 分钟';
   } else if (lower.includes('jwt') || lower.includes('api key') || code === '401') {
     friendly = '鉴权失败：请检查 config.js 里的环境 ID 与 Publishable Key';
   }
